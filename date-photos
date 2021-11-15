@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import sys
 
-list_of_files = []
+class termcolor:
+    ERROR = '\033[1m\033[31m'
+    CLEAR = '\033[0m'
 
 if len(sys.argv) < 2:
     sys.exit("missing path argument")
 
-path = sys.argv[1]
+root_path = sys.argv[1]
 
-if not os.path.exists(path):
-    sys.exit("path does not exist: " + path)
+if not os.path.exists(root_path):
+    sys.exit("path does not exist: " + root_path)
 
-path = os.getcwd() if len(sys.argv) == 1 else sys.argv[1]
+regex = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}')
+prefix_length = len(root_path) if root_path.endswith("/") else len(root_path) + 1
 
-print("cwd: ", os.getcwd())
-print("arg: ", sys.argv)
-print("path: ", os.path.basename(path))
+def handle(path):
+    match = regex.match(path[prefix_length:].replace("/", "-"))
+    if match:
+        print(f"{path} {match.group()}")
+    else:
+        print(f"{termcolor.ERROR}Error!{termcolor.CLEAR} {path}")
 
-for root, dirs, files in os.walk(os.getcwd()):
+for root, dirs, files in os.walk(root_path):
     for file in files:
-        list_of_files.append(os.path.join(root, file))
-
-for name in list_of_files:
-    print(name)
+        handle(os.path.join(root, file))
