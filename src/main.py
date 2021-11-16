@@ -1,9 +1,30 @@
+import click
 import os
 import re
 import src.constants as c
 import sys
 
-def main():
+@click.command()
+@click.argument('source')
+@click.argument('destination')
+@click.option('--verbose/--quiet', '-v/-q', default=False)
+@click.option('--dry-run/--execute', '-d/-e', default=False)
+def main(source, destination, verbose, dry_run):
+    """Add date EXIF metadata to images based on directory path.
+
+SOURCE file paths must start with YYYY-MM-DD. YYYY MM and DD can be any
+combination of directory or filename characters. For example,
+"2020/01-01/photo.jpg" or "2020-01-01 photo.jpg" are fine.
+
+Affected images will be moved to DESTINATION/YYYY and will be renamed to include
+the YYYY-MM-DD date in the filename."""
+    print(f"src: {source}")
+    print(f"dst: {destination}")
+    print(f"v: {verbose}")
+    print(f"d: {dry_run}")
+
+
+def old():
     if len(sys.argv) < 2:
         sys.exit("missing path argument")
 
