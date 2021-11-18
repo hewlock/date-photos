@@ -1,4 +1,5 @@
 import click
+import exif
 import os
 import re
 import src.constants as c
@@ -9,8 +10,8 @@ def find_files(params):
     for root, dirs, files in os.walk(params['source']):
         for file in files:
             results.append({
-                'source_path': os.path.join(root, file),
-                'file': file,
+                'file_path': os.path.join(root, file),
+                'file_name': file,
                 'valid': True,
             })
     return results
@@ -21,13 +22,33 @@ def add_date(params, results):
     prefix_length = len(source) if source.endswith('/') else len(source) + 1
 
     for result in results:
-        date_path = result['source_path'][prefix_length:];
+        date_path = result['file_path'][prefix_length:];
         match = regex.match(date_path.replace('/', '-'))
         if match:
             result['date'] = match.group()
         else:
             result['valid'] = False
             result['reason'] = 'Invalid Date'
+
+def set_exif_date(params, results):
+    for result in results:
+        if not result['valid']:
+            continue
+
+        with open(result['file_path'], 'rb') as image_file:
+            image = exif.Image(image_file)
+
+        if image.has_exif:
+            print('\n')
+            print(result['file_path'])
+            for prop in image.list_all():
+                try:
+                    print(f'{prop}: {image[prop]}')
+                except:
+                    print(f'{prop}: {c.color.ERROR}Error!{c.color.CLEAR}')
+        else:
+            result['valid'] = False
+            result['reason'] = 'Invalid Photo'
 
 def print_results(params, results):
     print(params)
@@ -66,4 +87,5 @@ the YYYY-MM-DD date in the filename."""
 
     results = find_files(params)
     add_date(params, results)
+    set_exif_date(params, results)
     print_results(params, results)
