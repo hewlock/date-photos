@@ -1,9 +1,10 @@
 import click
-import exif
 import os
 import re
-import src.util as util
 import sys
+
+from datetime import datetime
+from exif import Image, DATETIME_STR_FORMAT
 
 def find_files(params):
     results = []
@@ -12,6 +13,7 @@ def find_files(params):
             results.append({
                 'file_path': os.path.join(root, file),
                 'file_name': file,
+                'file_ext': file[file.rfind('.'):],
                 'valid': True,
             })
     return results
@@ -25,38 +27,91 @@ def add_date(params, results):
         date_path = result['file_path'][prefix_length:];
         match = regex.match(date_path.replace('/', '-'))
         if match:
-            result['date'] = match.group()
+            date = match.group()
+            result['date'] = date
+            result['year'] = date[0:4]
+            result['month'] = date[5:7]
+            result['day'] = date[8:10]
         else:
             result['valid'] = False
             result['reason'] = 'Invalid Date'
 
+def to_exif_date(result):
+    year = int(result['year'])
+    month = int(result['month'])
+    day = int(result['day'])
+    exif_date = datetime(year=year, month=month, day=day, hour=12, minute=0, second=0)
+    return exif_date.strftime(DATETIME_STR_FORMAT)
+
 def set_exif_date(params, results):
+    dst = params['destination']
+    if not dst.endswith('/'):
+        dst = f'{dst}/'
+
+    count = 0;
     for result in results:
         if not result['valid']:
             continue
 
         with open(result['file_path'], 'rb') as image_file:
-            image = exif.Image(image_file)
+            image = Image(image_file)
 
-        if image.has_exif:
-            print('\n')
-            print(result['file_path'])
-            for prop in image.list_all():
-                try:
-                    print(f'{prop}: {image[prop]}')
-                except Exception as e:
-                    print('%s: %s' % (prop, util.error(e)))
-        else:
+        if not image.has_exif:
             result['valid'] = False
             result['reason'] = 'Invalid Photo'
+            continue
+
+        count += 1
+        exif_date = to_exif_date(result)
+        image.datetime_original = exif_date
+        image.datetime = exif_date
+
+        dir = f"{dst}{result['year']}/{result['month']}/{result['day']}"
+        name = f"{result['date']}-photo-{count}{result['file_ext']}"
+        full = f"{dir}/{name}"
+        result['output_path'] = full
+
+        if params['dry_run']:
+            continue
+
+        print('mkdir -p and save file')
+        # mkdir -p dir
+        # save file
+
+        # print('\n')
+        # print(result['file_path'])
+        # for prop in image.list_all():
+        #     try:
+        #         print(f'{prop}: {image[prop]}')
+        #     except Exception as e:
+        #         print('%s: %s' % (prop, util.error(e)))
 
 def print_results(params, results):
-    print(params)
-    for result in results:
-        if (result['valid']):
-            print(result)
-        else:
-            print(util.error(result))
+    errors = [r for r in results if not r['valid']]
+    success = [r for r in results if r['valid']]
+    error_count = len(errors)
+    success_count = len(results) - error_count
+
+    if params['verbose']:
+        if len(success) > 0:
+            print('\nSuccess:')
+            for s in success:
+                print(f"  {s['file_path']} -> {s['output_path']} ({s['date']})")
+        if len(errors) > 0:
+            print('\nErrors:')
+            for e in errors:
+                print(f"  {e['file_path']}: {e['reason']}")
+
+    print('\nComplete!')
+    print(f'  {len(success)} success')
+    print(f'  {len(errors)} errors\n')
+    # print(params)
+    # print(invalid)
+    # for result in results:
+    #     if (result['valid']):
+    #         print(result)
+    #     else:
+    #         print(util.error(result))
 
 
 @click.command()
