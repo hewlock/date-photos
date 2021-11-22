@@ -74,17 +74,13 @@ def set_exif_date(params, results):
         if params['dry_run']:
             continue
 
-        print('mkdir -p and save file')
-        # mkdir -p dir
-        # save file
-
-        # print('\n')
-        # print(result['file_path'])
-        # for prop in image.list_all():
-        #     try:
-        #         print(f'{prop}: {image[prop]}')
-        #     except Exception as e:
-        #         print('%s: %s' % (prop, util.error(e)))
+        try:
+            os.makedirs(dir, exist_ok=True)
+            with open(full, 'wb') as image_file:
+                image_file.write(image.get_file())
+        except Exception as e:
+            result['valid'] = False
+            result['reason'] = e
 
 def print_results(params, results):
     errors = [r for r in results if not r['valid']]
@@ -105,13 +101,6 @@ def print_results(params, results):
     print('\nComplete!')
     print(f'  {len(success)} success')
     print(f'  {len(errors)} errors\n')
-    # print(params)
-    # print(invalid)
-    # for result in results:
-    #     if (result['valid']):
-    #         print(result)
-    #     else:
-    #         print(util.error(result))
 
 
 @click.command()
