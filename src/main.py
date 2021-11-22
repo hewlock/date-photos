@@ -2,7 +2,7 @@ import click
 import exif
 import os
 import re
-import src.constants as c
+import src.util as util
 import sys
 
 def find_files(params):
@@ -44,8 +44,8 @@ def set_exif_date(params, results):
             for prop in image.list_all():
                 try:
                     print(f'{prop}: {image[prop]}')
-                except:
-                    print(f'{prop}: {c.color.ERROR}Error!{c.color.CLEAR}')
+                except Exception as e:
+                    print('%s: %s' % (prop, util.error(e)))
         else:
             result['valid'] = False
             result['reason'] = 'Invalid Photo'
@@ -56,7 +56,8 @@ def print_results(params, results):
         if (result['valid']):
             print(result)
         else:
-            print(f'{c.color.ERROR}{result}{c.color.CLEAR}')
+            print(util.error(result))
+
 
 @click.command()
 @click.argument('source')
