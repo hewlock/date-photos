@@ -56,9 +56,9 @@ def set_exif_date(params, results):
         with open(result['file_path'], 'rb') as image_file:
             image = Image(image_file)
 
-        if not image.has_exif:
+        if image.has_exif:
             result['valid'] = False
-            result['reason'] = 'Invalid Photo'
+            result['reason'] = 'Image has existing exif'
             continue
 
         count += 1
